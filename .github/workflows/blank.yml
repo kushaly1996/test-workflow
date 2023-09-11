@@ -5,7 +5,7 @@
 #     paths:
 #       - aws/**
 #     branches:
-#       - kushal-test-infra
+#       - main
 # env:
 #   AWS_REGION: us-west-2
 # permissions:
@@ -89,7 +89,7 @@ on:
       - zopnow-4417/**
       - zsaws/**
     branches:
-      - kushal-test-infra
+      - main
 
 env:
   AWS_REGION: "us-west-2" # Change to reflect your Region
