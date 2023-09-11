@@ -159,13 +159,13 @@ jobs:
             fi
           done
           #echo ::set-output name=file_name::${file_names[*]}
-          echo ::set-output name=file_name::["${file_names[@]}"]
+          echo ::set-output name=file_names::["${file_names[@]}"]
 
 
         shell: bash
 
       - name: Print file_name
-        run: echo file_name is ${{ steps.check-and-assume-role.outputs.file_name }}
+        run: echo file_name is ${{ steps.check-and-assume-role.outputs.file_names }}
 
       # - name: Generate Matrix
       #   id: generate-matrix
@@ -176,7 +176,7 @@ jobs:
       - name: Generate Matrix
         id: generate-matrix
         run: |
-          matrix_data=${{ toJSON(steps.check-and-assume-role.outputs.file_name) }}
+          matrix_data=${{ toJSON(steps.check-and-assume-role.outputs.file_names) }}
           echo Matrix Data: $matrix_data
           echo ::set-output name=matrix::$matrix_data 
       # - name: Generate Matrix
