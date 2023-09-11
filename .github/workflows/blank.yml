@@ -2,7 +2,8 @@ name: "Connect to an AWS role from a GitHub repository"
 on:
   push:
     paths:
-      - 'aws/**'
+      - zopnow-4417/**
+      - zs-aws/**
     branches:
       - main
 
