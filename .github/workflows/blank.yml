@@ -1,111 +1,43 @@
-name: "Connect to an AWS role from a GitHub repository"
+name: Dispatch Listener
+
 on:
-  push:
-    paths:
-      - zopnow-4417/**
-      - zs-aws/**
-    branches:
-      - main
-
-env:
-  AWS_REGION: "us-west-2" # Change to reflect your Region
-
-# Permission can be added at job level or workflow level
-permissions:
-  id-token: write   # This is required for requesting the JWT(JSON Web Token)
-  contents: read    # This is required for actions/checkout
+  workflow_dispatch:
 
 jobs:
-  process-file-name-and-create-matrix:
+  # ------------------------
+  say_hello:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.generate-matrix.outputs.matrix }}
+      services: ${{ steps.generate-matrix.outputs.services }}
+      versions: ${{ steps.generate-matrix.outputs.versions }}
     steps:
-      - name: Git clone the repository
-        uses: actions/checkout@v3
-
-      - name: Get Changed Files
-        id: files
-        uses: jitterbit/get-changed-files@v1
-        with:
-          format: space-delimited
-      - run: |
-          for added_modified_file in ${{ steps.files.outputs.all }}; do
-            echo "added_modified_file=${added_modified_file}" >> $GITHUB_ENV
-          done
-      # - name: Set up file_names array
-      #   id: set-file-names
-      #   run: |
-      #     file_names=()
-      #     for added_modified_file in ${{ steps.files.outputs.all }}; do
-      #      if [[ $(basename ${added_modified_file}) == 'terragrunt.hcl' ]]; then
-      #         dir_name=$(dirname ${added_modified_file} | cut -d'/' -f2)
-      #         file_names+=("$dir_name")
-      #       fi
-      #     done
-      #     # Use jq to remove double quotes and set the array as an output
-      #     output=$(echo "${file_names[*]}" | jq -c -R .)
-      #     echo "::set-output name=file_name::$output"
-      #   shell: bash
-
-      # - name: Check if modified file is zs-aws and assume AWS role
-      #   id: check-and-assume-role
-      #   run: |
-      #     # Initialize an empty array to store file names
-      #     file_names=()
-      #       # Assuming you want to set 'file_name' based on specific conditions
-      #       # Modify this logic as needed
-      #       for added_modified_file in ${{ steps.files.outputs.all }}; do
-      #         if [[ $(basename ${added_modified_file}) == 'terragrunt.hcl' ]]; then
-      #           dir_name=$(dirname ${added_modified_file} | cut -d'/' -f2)
-      #           file_names+=("$dir_name")
-      #         fi
-      #      done
-      #       # Join the array elements into a comma-separated string
-      #     file_names_str=$(IFS=,; echo "${file_names[*]}")
-      #     echo ::set-output name=file_name::$file_names_str
-      #   shell: bash
-      - name: Set up file_names array
-        id: check-and-assume-role
-        run: |
-          file_names=()
-          for added_modified_file in ${{ steps.files.outputs.all }}; do
-            if [[ $(basename ${added_modified_file}) == 'terragrunt.hcl' ]]; then
-            dir_name=$(dirname ${added_modified_file} | cut -d'/' -f2 )
-            file_names+=("$dir_name")
-            fi
-          done
-          echo ::set-output name=file_name::${file_names[*]}
-        shell: bash
-
-      - name: Print file_name
-        run: echo file_name is ${{ steps.check-and-assume-role.outputs.file_name }}
-
-      # - name: Generate Matrix
-      #   id: generate-matrix
-      #   run: |
-      #     echo "FILE_NAME= ${{ toJSON(steps.check-and-assume-role.outputs.file_name) }}"
-      #     echo ::set-output name=file_name::${FILE_NAME}
-
       - name: Generate Matrix
         id: generate-matrix
         run: |
-          matrix_data=${{ toJSON(steps.check-and-assume-role.outputs.file_name) }}
-          echo Matrix Data: $matrix_data
-          echo ::set-output name=matrix::$matrix_data
-           
-
-  use-dynamic-matrix:
+          SERVICES='${{ toJSON(github.event.client_payload.services) }}'
+          echo ::set-output name=services::${SERVICES}
+          VERSIONS='${{ toJSON(github.event.client_payload.versions) }}'
+          echo ::set-output name=versions::${VERSIONS}
+  # ------------------------
+  my_echo:
     runs-on: ubuntu-latest
-    needs: process-file-name-and-create-matrix
-    # env:
-    #   file_name: ${{needs.process-file-name-and-create-matrix.outputs.matrix}}
+    needs:
+      - say_hello
+    steps:
+      - name: Echo previous outputs
+        run: echo "${{ toJSON(needs.say_hello.outputs) }}"
+  # ------------------------
+  my_matrix:
+    runs-on: ubuntu-latest
+    needs:
+      - my_echo
+      - say_hello
     strategy:
       matrix:
-        file_name: 
-        - ${{ toJson(needs.process-file-name-and-create-matrix.outputs.matrix) }} 
+        service: ${{ fromJSON(needs.say_hello.outputs.services) }}
+        version: ${{ fromJSON(needs.say_hello.outputs.versions) }}
     steps:
-      - name: priting the values
-        run:
-          echo "${{ matrix.file_name }}"
-
+      - name: Matrix => (${{ matrix.service }} ${{ matrix.version}})
+        run: |
+          echo ${{ matrix.service }}
+          echo ${{ matrix.version }}
